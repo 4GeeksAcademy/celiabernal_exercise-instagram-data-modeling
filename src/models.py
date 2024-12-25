@@ -1,32 +1,60 @@
 import os
 import sys
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, Enum
 from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy import create_engine
 from eralchemy2 import render_er
 
 Base = declarative_base()
 
-class Person(Base):
-    __tablename__ = 'person'
-    # Here we define columns for the table person
-    # Notice that each column is also a normal Python instance attribute.
-    id = Column(Integer, primary_key=True)
-    name = Column(String(250), nullable=False)
+class User(Base):
+    __tablename__ = 'user'
 
-class Address(Base):
-    __tablename__ = 'address'
-    # Here we define columns for the table address.
-    # Notice that each column is also a normal Python instance attribute.
-    id = Column(Integer, primary_key=True)
-    street_name = Column(String(250))
-    street_number = Column(String(250))
-    post_code = Column(String(250), nullable=False)
-    person_id = Column(Integer, ForeignKey('person.id'))
-    person = relationship(Person)
+    id = Column(Integer, primary_key=True, unique=True)
+    username = Column(String(50), nullable=False, unique=True)
+    first_name = Column(String(50), nullable=False)
+    last_name = Column(String(50), nullable=False)
+    email = Column (String (50), unique=True)
+    people = relationship('Follower', back_populates='user')
+    posts = relationship ('Post', back_populates='author')
+    comment_author = relationship('Comment', back_populates ='author_comment')
+
+class Follower(Base):
+    __tablename__ = 'follower'
+    follower_id = Column(Integer, primary_key=True, unique=True)
+    user_from_id = Column(Integer, ForeignKey('user.id'))
+    user = relationship('User', back_populates='people')
+    user_to_id = Column(Integer, ForeignKey('user.id'))
+
+
+class Media(Base):
+    __tablename__ = 'media'
+    id = Column(Integer,primary_key = True)
+    type = Column (Enum('image','video', name='media_type_enum'),nullable=False)
+    url = Column (String(250),nullable=False)
+    post_id = Column (Integer, ForeignKey('post.id'))
+    content = relationship('Post', back_populates= 'media_content')
+
+class Post(Base):
+    __tablename__ = 'post'
+    id = Column(Integer,primary_key = True)
+    user_id = Column (Integer, ForeignKey('user.id'),nullable=False)
+    author = relationship('User', back_populates= 'posts')
+    media_content = relationship ('Media', back_populates= 'content')
+    feed_comment= relationship('Comment', back_populates= 'comment_feed') 
+
+class Comment(Base):
+    __tablename__ = 'comment'
+    id = Column(String(250),primary_key = True)
+    comment_text = Column (String,nullable=False)
+    author_id = Column (Integer, ForeignKey('user.id'),nullable=False)
+    author_comment = relationship('User', back_populates= 'comment_author')
+    post_id = Column(Integer, ForeignKey('post.id'),nullable=False)
+    comment_feed = relationship('Post', back_populates = 'feed_comment')
 
     def to_dict(self):
         return {}
+
 
 ## Draw from SQLAlchemy base
 try:
